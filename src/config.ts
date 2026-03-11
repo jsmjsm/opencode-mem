@@ -41,6 +41,7 @@ interface OpenCodeMemConfig {
   memoryApiUrl?: string;
   memoryApiKey?: string;
   memoryTemperature?: number | false;
+  vectorBackend?: "usearch-first" | "usearch" | "exact-scan";
   aiSessionRetentionDays?: number;
   webServerEnabled?: boolean;
   webServerPort?: number;
@@ -94,6 +95,7 @@ const DEFAULTS: Required<
   memoryApiKey?: string;
   memoryProvider?: "openai-chat" | "openai-responses" | "anthropic";
   memoryTemperature?: number | false;
+  vectorBackend?: "usearch-first" | "usearch" | "exact-scan";
   autoCaptureLanguage?: string;
   userEmailOverride?: string;
   userNameOverride?: string;
@@ -109,6 +111,7 @@ const DEFAULTS: Required<
   autoCaptureEnabled: true,
   autoCaptureMaxIterations: 5,
   autoCaptureIterationTimeout: 30000,
+  vectorBackend: "usearch-first",
   aiSessionRetentionDays: 7,
   webServerEnabled: true,
   webServerPort: 4747,
@@ -446,6 +449,10 @@ export const CONFIG = {
   memoryApiUrl: fileConfig.memoryApiUrl,
   memoryApiKey: resolveSecretValue(fileConfig.memoryApiKey),
   memoryTemperature: fileConfig.memoryTemperature,
+  vectorBackend: (fileConfig.vectorBackend ?? "usearch-first") as
+    | "usearch-first"
+    | "usearch"
+    | "exact-scan",
   aiSessionRetentionDays: fileConfig.aiSessionRetentionDays ?? DEFAULTS.aiSessionRetentionDays,
   webServerEnabled: fileConfig.webServerEnabled ?? DEFAULTS.webServerEnabled,
   webServerPort: fileConfig.webServerPort ?? DEFAULTS.webServerPort,
