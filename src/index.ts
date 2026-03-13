@@ -196,7 +196,7 @@ export const OpenCodeMemPlugin: Plugin = async (ctx: PluginInput) => {
 
         if (memoryContext) {
           const contextPart: Part = {
-            id: `memory-context-${Date.now()}`,
+            id: `prt-memory-context-${Date.now()}`,
             sessionID: input.sessionID,
             messageID: output.message.id,
             type: "text",
@@ -418,7 +418,7 @@ export const OpenCodeMemPlugin: Plugin = async (ctx: PluginInput) => {
           await ctx.client.session.prompt({
             path: { id: sessionID },
             body: {
-              parts: [{ type: "text", text: memoryContext }],
+              parts: [{ id: `prt-compaction-${Date.now()}`, type: "text", text: memoryContext }],
               noReply: true,
             },
           });
