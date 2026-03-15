@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import {
   readOpencodeAuth,
   createOpencodeAIProvider,
+  createOAuthFetch,
   setStatePath,
   getStatePath,
   setConnectedProviders,
@@ -10,14 +11,17 @@ import {
 } from "../src/services/ai/opencode-provider.js";
 
 describe("readOpencodeAuth", () => {
-  let spy: ReturnType<typeof spyOn>;
+  let readSpy: ReturnType<typeof spyOn>;
+  let existsSpy: ReturnType<typeof spyOn>;
 
   afterEach(() => {
-    if (spy) spy.mockRestore();
+    if (readSpy) readSpy.mockRestore();
+    if (existsSpy) existsSpy.mockRestore();
   });
 
   it("returns OAuth auth when provider has oauth type", () => {
-    spy = spyOn(fs, "readFileSync").mockReturnValue(
+    existsSpy = spyOn(fs, "existsSync").mockReturnValue(true);
+    readSpy = spyOn(fs, "readFileSync").mockReturnValue(
       JSON.stringify({
         anthropic: { type: "oauth", refresh: "r", access: "a", expires: 9999 },
       })
@@ -27,7 +31,8 @@ describe("readOpencodeAuth", () => {
   });
 
   it("returns API auth when provider has api type", () => {
-    spy = spyOn(fs, "readFileSync").mockReturnValue(
+    existsSpy = spyOn(fs, "existsSync").mockReturnValue(true);
+    readSpy = spyOn(fs, "readFileSync").mockReturnValue(
       JSON.stringify({ openai: { type: "api", key: "sk-test" } })
     );
     const result = readOpencodeAuth("/state", "openai");
@@ -35,14 +40,13 @@ describe("readOpencodeAuth", () => {
   });
 
   it("throws when auth.json file is missing", () => {
-    spy = spyOn(fs, "readFileSync").mockImplementation(() => {
-      throw new Error("ENOENT: no such file or directory");
-    });
+    existsSpy = spyOn(fs, "existsSync").mockReturnValue(false);
     expect(() => readOpencodeAuth("/state", "anthropic")).toThrow(/not found/);
   });
 
   it("throws when provider not in auth.json", () => {
-    spy = spyOn(fs, "readFileSync").mockReturnValue(
+    existsSpy = spyOn(fs, "existsSync").mockReturnValue(true);
+    readSpy = spyOn(fs, "readFileSync").mockReturnValue(
       JSON.stringify({
         anthropic: { type: "oauth", refresh: "r", access: "a", expires: 9999 },
       })
@@ -51,19 +55,38 @@ describe("readOpencodeAuth", () => {
   });
 
   it("throws when auth.json contains invalid JSON", () => {
-    spy = spyOn(fs, "readFileSync").mockReturnValue("not-json");
+    existsSpy = spyOn(fs, "existsSync").mockReturnValue(true);
+    readSpy = spyOn(fs, "readFileSync").mockReturnValue("not-json");
     expect(() => readOpencodeAuth("/state", "anthropic")).toThrow(/invalid JSON/);
   });
 });
 
 describe("createOpencodeAIProvider", () => {
+  let readSpy: ReturnType<typeof spyOn>;
+  let existsSpy: ReturnType<typeof spyOn>;
+
+  afterEach(() => {
+    if (readSpy) readSpy.mockRestore();
+    if (existsSpy) existsSpy.mockRestore();
+  });
+
   it("creates Anthropic provider with authToken for OAuth", () => {
-    const provider = createOpencodeAIProvider("anthropic", {
-      type: "oauth",
-      refresh: "r",
-      access: "tok",
-      expires: 1,
-    });
+    existsSpy = spyOn(fs, "existsSync").mockReturnValue(true);
+    readSpy = spyOn(fs, "readFileSync").mockReturnValue(
+      JSON.stringify({
+        anthropic: { type: "oauth", refresh: "r", access: "tok", expires: 9999999999999 },
+      })
+    );
+    const provider = createOpencodeAIProvider(
+      "anthropic",
+      {
+        type: "oauth",
+        refresh: "r",
+        access: "tok",
+        expires: 9999999999999,
+      },
+      "/mock/state"
+    );
     expect(typeof provider).toBe("function");
   });
 
@@ -98,6 +121,33 @@ describe("createOpencodeAIProvider", () => {
     expect(() => createOpencodeAIProvider("gemini", { type: "api", key: "key" })).toThrow(
       /Unsupported opencode provider/
     );
+  });
+
+  it("creates Anthropic provider with OAuth using createOAuthFetch", () => {
+    existsSpy = spyOn(fs, "existsSync").mockReturnValue(true);
+    readSpy = spyOn(fs, "readFileSync").mockReturnValue(
+      JSON.stringify({
+        anthropic: { type: "oauth", refresh: "r", access: "tok", expires: 9999999999999 },
+      })
+    );
+    const provider = createOpencodeAIProvider(
+      "anthropic",
+      {
+        type: "oauth",
+        refresh: "r",
+        access: "tok",
+        expires: 9999999999999,
+      },
+      "/mock/state"
+    );
+    expect(typeof provider).toBe("function");
+  });
+});
+
+describe("createOAuthFetch", () => {
+  it("returns a fetch function", () => {
+    const fetchFn = createOAuthFetch("/state", "anthropic");
+    expect(typeof fetchFn).toBe("function");
   });
 });
 
