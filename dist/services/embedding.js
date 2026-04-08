@@ -8,7 +8,7 @@ let _transformers = null;
 async function ensureTransformersLoaded() {
     if (_transformers !== null)
         return _transformers;
-    const mod = await import("@xenova/transformers");
+    const mod = await import("@huggingface/transformers");
     mod.env.allowLocalModels = true;
     mod.env.allowRemoteModels = true;
     mod.env.cacheDir = join(CONFIG.storagePath, ".cache");
