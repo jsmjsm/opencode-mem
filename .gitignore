@@ -3,7 +3,8 @@ node_modules
 
 # output
 out
-dist
+# dist is committed in this fork so opencode can install via git+https
+# dist
 *.tgz
 
 # code coverage
