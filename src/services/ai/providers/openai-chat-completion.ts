@@ -13,7 +13,7 @@ import { UserProfileValidator } from "../validators/user-profile-validator.js";
 interface ToolCallResponse {
   choices: Array<{
     message: {
-      content?: string;
+      content?: string | null;
       tool_calls?: Array<{
         id: string;
         type: "function";
@@ -29,7 +29,7 @@ interface ToolCallResponse {
 
 type APIMessage = {
   role: AIMessage["role"];
-  content: string;
+  content: string | null;
   tool_calls?: ToolCallResponse["choices"][number]["message"]["tool_calls"];
   tool_call_id?: string;
 };
@@ -54,13 +54,20 @@ function isErrorResponseBody(data: unknown): data is { status: string; msg: stri
   );
 }
 
-function isToolCallResponse(data: unknown): data is ToolCallResponse {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    Array.isArray((data as { choices?: unknown }).choices) &&
-    (data as { choices: unknown[] }).choices.length > 0
-  );
+function hasNonEmptyChoices(data: unknown): data is ToolCallResponse {
+  if (typeof data !== "object" || data === null) return false;
+  const { choices } = data as { choices?: unknown };
+  if (!Array.isArray(choices) || choices.length === 0) return false;
+
+  const first = choices[0] as { message?: unknown };
+  if (typeof first !== "object" || first === null) return false;
+  if (typeof first.message !== "object" || first.message === null) return false;
+
+  const { content, tool_calls } = first.message as { content?: unknown; tool_calls?: unknown };
+  if (content !== undefined && content !== null && typeof content !== "string") return false;
+  if (tool_calls !== undefined && !Array.isArray(tool_calls)) return false;
+
+  return true;
 }
 
 export class OpenAIChatCompletionProvider extends BaseAIProvider {
@@ -286,7 +293,7 @@ export class OpenAIChatCompletionProvider extends BaseAIProvider {
           };
         }
 
-        if (!isToolCallResponse(data)) {
+        if (!hasNonEmptyChoices(data)) {
           const choices =
             typeof data === "object" && data !== null
               ? (data as { choices?: unknown }).choices
@@ -320,7 +327,7 @@ export class OpenAIChatCompletionProvider extends BaseAIProvider {
           aiSessionId: session.id,
           sequence: assistantSequence,
           role: "assistant",
-          content: choice.message.content || "",
+          content: choice.message.content ?? "",
         };
 
         if (choice.message.tool_calls) {
@@ -330,7 +337,7 @@ export class OpenAIChatCompletionProvider extends BaseAIProvider {
         this.aiSessionManager.addMessage(assistantMsg);
         messages.push({
           role: "assistant",
-          content: choice.message.content || "",
+          content: choice.message.content ?? null,
           tool_calls: choice.message.tool_calls,
         });
 
