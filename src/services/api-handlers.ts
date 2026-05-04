@@ -732,7 +732,12 @@ export async function handleRunCleanup(): Promise<
 }
 
 export async function handleRunDeduplication(): Promise<
-  ApiResponse<{ exactDuplicatesDeleted: number; nearDuplicateGroups: any[] }>
+  ApiResponse<{
+    exactDuplicatesDeleted: number;
+    nearDuplicatesDeleted: number;
+    pinnedSkipped: number;
+    nearDuplicateGroups: any[];
+  }>
 > {
   try {
     const { deduplicationService } = await import("./deduplication-service.js");

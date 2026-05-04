@@ -33,6 +33,7 @@ export declare let CONFIG: {
     autoCleanupRetentionDays: number;
     deduplicationEnabled: boolean;
     deduplicationSimilarityThreshold: number;
+    deduplicationDeleteThreshold: number;
     userProfileAnalysisInterval: number;
     userProfileMaxPreferences: number;
     userProfileMaxPatterns: number;

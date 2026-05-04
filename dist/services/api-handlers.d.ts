@@ -116,6 +116,8 @@ export declare function handleRunCleanup(): Promise<ApiResponse<{
 }>>;
 export declare function handleRunDeduplication(): Promise<ApiResponse<{
     exactDuplicatesDeleted: number;
+    nearDuplicatesDeleted: number;
+    pinnedSkipped: number;
     nearDuplicateGroups: any[];
 }>>;
 export declare function handleDetectMigration(): Promise<ApiResponse<{

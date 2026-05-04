@@ -20,6 +20,8 @@ interface DuplicateGroup {
 
 interface DeduplicationResult {
   exactDuplicatesDeleted: number;
+  nearDuplicatesDeleted: number;
+  pinnedSkipped: number;
   nearDuplicateGroups: DuplicateGroup[];
 }
 
@@ -43,6 +45,8 @@ export class DeduplicationService {
       const allShards = [...userShards, ...projectShards];
 
       let exactDeleted = 0;
+      let nearDeleted = 0;
+      let pinnedSkipped = 0;
       const nearDuplicateGroups: DuplicateGroup[] = [];
 
       for (const shard of allShards) {
@@ -61,10 +65,20 @@ export class DeduplicationService {
 
         for (const [, duplicates] of contentMap) {
           if (duplicates.length > 1) {
-            duplicates.sort((a, b) => Number(b.created_at) - Number(a.created_at));
+            // Sort: pinned first, then newest. Pinned memories are preserved as
+            // representatives over unpinned newer ones to honor user intent.
+            duplicates.sort((a, b) => {
+              const pinDiff = (b.is_pinned === 1 ? 1 : 0) - (a.is_pinned === 1 ? 1 : 0);
+              if (pinDiff !== 0) return pinDiff;
+              return Number(b.created_at) - Number(a.created_at);
+            });
             const toDelete = duplicates.slice(1);
 
             for (const dup of toDelete) {
+              if (dup.is_pinned === 1) {
+                pinnedSkipped++;
+                continue;
+              }
               try {
                 await vectorSearch.deleteVector(db, dup.id, shard);
                 shardManager.decrementVectorCount(shard.id);
@@ -106,11 +120,32 @@ export class DeduplicationService {
             const similarity = this.cosineSimilarity(vector1, vector2);
 
             if (similarity >= CONFIG.deduplicationSimilarityThreshold && similarity < 1.0) {
-              similarGroup.duplicates.push({
-                id: mem2.id,
-                content: mem2.content,
-                similarity,
-              });
+              const shouldAutoDelete =
+                mem2.is_pinned !== 1 && similarity >= CONFIG.deduplicationDeleteThreshold;
+              if (shouldAutoDelete) {
+                try {
+                  await vectorSearch.deleteVector(db, mem2.id, shard);
+                  shardManager.decrementVectorCount(shard.id);
+                  nearDeleted++;
+                } catch (error) {
+                  log("Deduplication: near-dup delete error", {
+                    memoryId: mem2.id,
+                    error: String(error),
+                  });
+                  similarGroup.duplicates.push({
+                    id: mem2.id,
+                    content: mem2.content,
+                    similarity,
+                  });
+                }
+              } else {
+                if (mem2.is_pinned === 1) pinnedSkipped++;
+                similarGroup.duplicates.push({
+                  id: mem2.id,
+                  content: mem2.content,
+                  similarity,
+                });
+              }
               processedIds.add(mem2.id);
             }
           }
@@ -123,6 +158,8 @@ export class DeduplicationService {
 
       return {
         exactDuplicatesDeleted: exactDeleted,
+        nearDuplicatesDeleted: nearDeleted,
+        pinnedSkipped,
         nearDuplicateGroups,
       };
     } finally {
