@@ -709,6 +709,7 @@ async function runDeduplication() {
       t("toast-dedup-success", {
         exact: result.data?.exactDuplicatesDeleted ?? 0,
         near: result.data?.nearDuplicatesDeleted ?? 0,
+        pinned: result.data?.pinnedSkipped ?? 0,
         groups: result.data?.nearDuplicateGroups?.length ?? 0,
       }),
       "success"

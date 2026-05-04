@@ -377,8 +377,26 @@ function getEmbeddingDimensions(model) {
     };
     return dimensionMap[model] || 768;
 }
+function clampDedupThresholds(config) {
+    if (!Number.isFinite(config.deduplicationSimilarityThreshold) ||
+        config.deduplicationSimilarityThreshold < 0 ||
+        config.deduplicationSimilarityThreshold > 1) {
+        console.warn(`[opencode-mem] Invalid deduplicationSimilarityThreshold (${config.deduplicationSimilarityThreshold}); falling back to ${DEFAULTS.deduplicationSimilarityThreshold}`);
+        config.deduplicationSimilarityThreshold = DEFAULTS.deduplicationSimilarityThreshold;
+    }
+    if (!Number.isFinite(config.deduplicationDeleteThreshold) ||
+        config.deduplicationDeleteThreshold < 0 ||
+        config.deduplicationDeleteThreshold > 1) {
+        console.warn(`[opencode-mem] Invalid deduplicationDeleteThreshold (${config.deduplicationDeleteThreshold}); falling back to ${DEFAULTS.deduplicationDeleteThreshold}`);
+        config.deduplicationDeleteThreshold = DEFAULTS.deduplicationDeleteThreshold;
+    }
+    if (config.deduplicationDeleteThreshold < config.deduplicationSimilarityThreshold) {
+        console.warn(`[opencode-mem] deduplicationDeleteThreshold (${config.deduplicationDeleteThreshold}) < deduplicationSimilarityThreshold (${config.deduplicationSimilarityThreshold}); clamping delete threshold up to similarity threshold`);
+        config.deduplicationDeleteThreshold = config.deduplicationSimilarityThreshold;
+    }
+}
 function buildConfig(fileConfig) {
-    return {
+    const config = {
         storagePath: expandPath(fileConfig.storagePath ?? DEFAULTS.storagePath),
         userEmailOverride: fileConfig.userEmailOverride,
         userNameOverride: fileConfig.userNameOverride,
@@ -441,6 +459,8 @@ function buildConfig(fileConfig) {
             injectOn: (fileConfig.chatMessage?.injectOn ?? DEFAULTS.chatMessage.injectOn),
         },
     };
+    clampDedupThresholds(config);
+    return config;
 }
 let _globalFileConfig = loadConfigFromPaths(CONFIG_FILES);
 export let CONFIG = buildConfig(_globalFileConfig);

@@ -14,6 +14,7 @@ interface DuplicateGroup {
 interface DeduplicationResult {
     exactDuplicatesDeleted: number;
     nearDuplicatesDeleted: number;
+    pinnedSkipped: number;
     nearDuplicateGroups: DuplicateGroup[];
 }
 export declare class DeduplicationService {

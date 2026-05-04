@@ -56,7 +56,8 @@ const translations = {
     "toast-update-failed": "Failed to update memory",
     "toast-cleanup-success": "Cleanup: deleted {memories} memories, {prompts} prompts",
     "toast-cleanup-failed": "Cleanup failed",
-    "toast-dedup-success": "Dedup: deleted {exact} exact + {near} near-duplicates ({groups} group(s) flagged)",
+    "toast-dedup-success":
+      "Dedup: deleted {exact} exact + {near} near, skipped {pinned} pinned ({groups} groups flagged)",
     "toast-dedup-failed": "Deduplication failed",
     "toast-bulk-delete-success": "Selected memories deleted successfully",
     "toast-bulk-delete-failed": "Failed to delete selected memories",
@@ -69,7 +70,8 @@ const translations = {
     "confirm-delete-prompt": "Delete this prompt AND its linked memory?",
     "confirm-bulk-delete": "Delete {count} selected memories?",
     "confirm-cleanup": "This will remove all memories that are no longer relevant. Continue?",
-    "confirm-dedup": "This will merge duplicate or highly similar memories. Continue?",
+    "confirm-dedup":
+      "This will permanently delete exact duplicates and very-high-similarity memories (default: similarity >= 0.95). Pinned memories are protected. Continue?",
     "text-selected": "{count} selected",
     "text-page": "Page {current} of {total}",
     "text-total": "Total: {count}",
@@ -161,7 +163,8 @@ const translations = {
     "toast-update-failed": "更新记忆失败",
     "toast-cleanup-success": "清理完成: 删除 {memories} 条记忆, {prompts} 条提示词",
     "toast-cleanup-failed": "清理失败",
-    "toast-dedup-success": "去重完成: 删除 {exact} 条完全重复 + {near} 条近似重复 ({groups} 组待审)",
+    "toast-dedup-success":
+      "去重完成: 删除 {exact} 完全 + {near} 近似, 跳过 {pinned} 置顶 ({groups} 组待审)",
     "toast-dedup-failed": "去重失败",
     "toast-bulk-delete-success": "选中的记忆删除成功",
     "toast-bulk-delete-failed": "删除选中的记忆失败",
@@ -174,7 +177,8 @@ const translations = {
     "confirm-delete-prompt": "删除这条提示词及其关联的记忆？",
     "confirm-bulk-delete": "删除选中的 {count} 条记忆？",
     "confirm-cleanup": "这将删除所有不再相关的记忆。是否继续？",
-    "confirm-dedup": "这将合并重复或高度相似的记忆。是否继续？",
+    "confirm-dedup":
+      "这将永久删除完全重复以及高度相似（默认相似度 >= 0.95）的记忆。已置顶的记忆受保护。是否继续？",
     "text-selected": "已选择 {count} 条",
     "text-page": "第 {current} 页，共 {total} 页",
     "text-total": "总计: {count}",

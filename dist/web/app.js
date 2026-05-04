@@ -689,7 +689,7 @@ async function runCleanup() {
         memories: result.data?.deletedCount ?? 0,
         prompts: result.data?.promptsDeleted ?? 0,
       }),
-      "success",
+      "success"
     );
     await loadMemories();
     await loadStats();
@@ -709,9 +709,10 @@ async function runDeduplication() {
       t("toast-dedup-success", {
         exact: result.data?.exactDuplicatesDeleted ?? 0,
         near: result.data?.nearDuplicatesDeleted ?? 0,
+        pinned: result.data?.pinnedSkipped ?? 0,
         groups: result.data?.nearDuplicateGroups?.length ?? 0,
       }),
-      "success",
+      "success"
     );
     await loadMemories();
     await loadStats();

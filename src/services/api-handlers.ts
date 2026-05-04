@@ -735,6 +735,7 @@ export async function handleRunDeduplication(): Promise<
   ApiResponse<{
     exactDuplicatesDeleted: number;
     nearDuplicatesDeleted: number;
+    pinnedSkipped: number;
     nearDuplicateGroups: any[];
   }>
 > {
