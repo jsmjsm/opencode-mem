@@ -11,6 +11,7 @@ interface CleanupResult {
   projectCount: number;
   promptsDeleted: number;
   linkedMemoriesDeleted: number;
+  linkedMemoriesSkipped: number;
   pinnedMemoriesSkipped: number;
 }
 
@@ -42,6 +43,8 @@ export class CleanupService {
 
     try {
       const cutoffTime = Date.now() - CONFIG.autoCleanupRetentionDays * 24 * 60 * 60 * 1000;
+      const minCreatedAt = CONFIG.cleanupCreatedAtMinTimestampMs;
+      const linkedPolicy = CONFIG.cleanupLinkedMemoryPolicy;
 
       const userShards = shardManager.getAllShards("user", "");
       const projectShards = shardManager.getAllShards("project", "");
@@ -61,6 +64,7 @@ export class CleanupService {
       let userDeleted = 0;
       let projectDeleted = 0;
       let linkedMemoriesDeleted = 0;
+      let linkedMemoriesSkipped = 0;
       let pinnedSkipped = 0;
 
       for (const shard of allShards) {
@@ -70,15 +74,20 @@ export class CleanupService {
           .prepare(
             `
           SELECT id, container_tag, is_pinned FROM memories 
-          WHERE created_at < ?
+          WHERE created_at < ? AND created_at > ?
         `
           )
-          .all(cutoffTime) as any[];
+          .all(cutoffTime, minCreatedAt) as any[];
 
         for (const memory of oldMemories) {
           try {
             if (memory.is_pinned === 1 || pinnedMemoryIds.has(memory.id)) {
               pinnedSkipped++;
+              continue;
+            }
+
+            if (linkedPolicy === "protect" && linkedMemoryIds.has(memory.id)) {
+              linkedMemoriesSkipped++;
               continue;
             }
 
@@ -109,6 +118,7 @@ export class CleanupService {
         projectCount: projectDeleted,
         promptsDeleted,
         linkedMemoriesDeleted,
+        linkedMemoriesSkipped,
         pinnedMemoriesSkipped: pinnedSkipped,
       };
     } finally {

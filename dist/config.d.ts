@@ -31,6 +31,8 @@ export declare let CONFIG: {
     maxVectorsPerShard: number;
     autoCleanupEnabled: boolean;
     autoCleanupRetentionDays: number;
+    cleanupLinkedMemoryPolicy: "protect" | "delete-with-expired-prompt";
+    cleanupCreatedAtMinTimestampMs: number;
     deduplicationEnabled: boolean;
     deduplicationSimilarityThreshold: number;
     userProfileAnalysisInterval: number;

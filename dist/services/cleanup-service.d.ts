@@ -4,6 +4,7 @@ interface CleanupResult {
     projectCount: number;
     promptsDeleted: number;
     linkedMemoriesDeleted: number;
+    linkedMemoriesSkipped: number;
     pinnedMemoriesSkipped: number;
 }
 export declare class CleanupService {
