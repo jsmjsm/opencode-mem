@@ -13,6 +13,7 @@ interface DuplicateGroup {
 }
 interface DeduplicationResult {
     exactDuplicatesDeleted: number;
+    nearDuplicatesDeleted: number;
     nearDuplicateGroups: DuplicateGroup[];
 }
 export declare class DeduplicationService {

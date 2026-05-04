@@ -18,6 +18,7 @@ export class DeduplicationService {
             const projectShards = shardManager.getAllShards("project", "");
             const allShards = [...userShards, ...projectShards];
             let exactDeleted = 0;
+            let nearDeleted = 0;
             const nearDuplicateGroups = [];
             for (const shard of allShards) {
                 const db = connectionManager.getConnection(shard.dbPath);
@@ -74,11 +75,32 @@ export class DeduplicationService {
                         const vector2 = new Float32Array(new Uint8Array(mem2.vector).buffer);
                         const similarity = this.cosineSimilarity(vector1, vector2);
                         if (similarity >= CONFIG.deduplicationSimilarityThreshold && similarity < 1.0) {
-                            similarGroup.duplicates.push({
-                                id: mem2.id,
-                                content: mem2.content,
-                                similarity,
-                            });
+                            if (similarity >= CONFIG.deduplicationDeleteThreshold) {
+                                // Auto-delete near-duplicate; mem1 (newest of its content group) is kept as representative.
+                                try {
+                                    await vectorSearch.deleteVector(db, mem2.id, shard);
+                                    shardManager.decrementVectorCount(shard.id);
+                                    nearDeleted++;
+                                }
+                                catch (error) {
+                                    log("Deduplication: near-dup delete error", {
+                                        memoryId: mem2.id,
+                                        error: String(error),
+                                    });
+                                    similarGroup.duplicates.push({
+                                        id: mem2.id,
+                                        content: mem2.content,
+                                        similarity,
+                                    });
+                                }
+                            }
+                            else {
+                                similarGroup.duplicates.push({
+                                    id: mem2.id,
+                                    content: mem2.content,
+                                    similarity,
+                                });
+                            }
                             processedIds.add(mem2.id);
                         }
                     }
@@ -89,6 +111,7 @@ export class DeduplicationService {
             }
             return {
                 exactDuplicatesDeleted: exactDeleted,
+                nearDuplicatesDeleted: nearDeleted,
                 nearDuplicateGroups,
             };
         }

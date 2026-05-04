@@ -57,6 +57,7 @@ interface OpenCodeMemConfig {
   autoCleanupRetentionDays?: number;
   deduplicationEnabled?: boolean;
   deduplicationSimilarityThreshold?: number;
+  deduplicationDeleteThreshold?: number;
   userProfileAnalysisInterval?: number;
   userProfileMaxPreferences?: number;
   userProfileMaxPatterns?: number;
@@ -136,6 +137,7 @@ const DEFAULTS: Required<
   autoCleanupRetentionDays: 30,
   deduplicationEnabled: true,
   deduplicationSimilarityThreshold: 0.9,
+  deduplicationDeleteThreshold: 0.95,
   userProfileAnalysisInterval: 10,
   userProfileMaxPreferences: 20,
   userProfileMaxPatterns: 15,
@@ -247,6 +249,11 @@ const CONFIG_TEMPLATE = `{
   
    // Similarity threshold (0-1) for detecting duplicates (higher = stricter)
    "deduplicationSimilarityThreshold": 0.90,
+
+   // Similarity threshold (0-1) for AUTO-DELETING near-duplicates. Must be >= deduplicationSimilarityThreshold.
+   // Items with similarity in [deduplicationSimilarityThreshold, deduplicationDeleteThreshold) are reported only.
+   // Set to 1.0 to disable near-duplicate auto-deletion (exact-match only).
+   "deduplicationDeleteThreshold": 0.95,
    
   // ============================================
   // Memory Scope Settings
@@ -530,6 +537,8 @@ function buildConfig(fileConfig: OpenCodeMemConfig) {
     deduplicationEnabled: fileConfig.deduplicationEnabled ?? DEFAULTS.deduplicationEnabled,
     deduplicationSimilarityThreshold:
       fileConfig.deduplicationSimilarityThreshold ?? DEFAULTS.deduplicationSimilarityThreshold,
+    deduplicationDeleteThreshold:
+      fileConfig.deduplicationDeleteThreshold ?? DEFAULTS.deduplicationDeleteThreshold,
     userProfileAnalysisInterval:
       fileConfig.userProfileAnalysisInterval ?? DEFAULTS.userProfileAnalysisInterval,
     userProfileMaxPreferences:

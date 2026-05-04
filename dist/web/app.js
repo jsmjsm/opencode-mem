@@ -684,7 +684,13 @@ async function runCleanup() {
   const result = await fetchAPI("/api/cleanup", { method: "POST" });
 
   if (result.success) {
-    showToast(t("toast-cleanup-success"), "success");
+    showToast(
+      t("toast-cleanup-success", {
+        memories: result.data?.deletedCount ?? 0,
+        prompts: result.data?.promptsDeleted ?? 0,
+      }),
+      "success",
+    );
     await loadMemories();
     await loadStats();
   } else {
@@ -699,7 +705,14 @@ async function runDeduplication() {
   const result = await fetchAPI("/api/deduplicate", { method: "POST" });
 
   if (result.success) {
-    showToast(t("toast-dedup-success"), "success");
+    showToast(
+      t("toast-dedup-success", {
+        exact: result.data?.exactDuplicatesDeleted ?? 0,
+        near: result.data?.nearDuplicatesDeleted ?? 0,
+        groups: result.data?.nearDuplicateGroups?.length ?? 0,
+      }),
+      "success",
+    );
     await loadMemories();
     await loadStats();
   } else {

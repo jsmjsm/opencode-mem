@@ -20,6 +20,7 @@ interface DuplicateGroup {
 
 interface DeduplicationResult {
   exactDuplicatesDeleted: number;
+  nearDuplicatesDeleted: number;
   nearDuplicateGroups: DuplicateGroup[];
 }
 
@@ -43,6 +44,7 @@ export class DeduplicationService {
       const allShards = [...userShards, ...projectShards];
 
       let exactDeleted = 0;
+      let nearDeleted = 0;
       const nearDuplicateGroups: DuplicateGroup[] = [];
 
       for (const shard of allShards) {
@@ -106,11 +108,30 @@ export class DeduplicationService {
             const similarity = this.cosineSimilarity(vector1, vector2);
 
             if (similarity >= CONFIG.deduplicationSimilarityThreshold && similarity < 1.0) {
-              similarGroup.duplicates.push({
-                id: mem2.id,
-                content: mem2.content,
-                similarity,
-              });
+              if (similarity >= CONFIG.deduplicationDeleteThreshold) {
+                // Auto-delete near-duplicate; mem1 (newest of its content group) is kept as representative.
+                try {
+                  await vectorSearch.deleteVector(db, mem2.id, shard);
+                  shardManager.decrementVectorCount(shard.id);
+                  nearDeleted++;
+                } catch (error) {
+                  log("Deduplication: near-dup delete error", {
+                    memoryId: mem2.id,
+                    error: String(error),
+                  });
+                  similarGroup.duplicates.push({
+                    id: mem2.id,
+                    content: mem2.content,
+                    similarity,
+                  });
+                }
+              } else {
+                similarGroup.duplicates.push({
+                  id: mem2.id,
+                  content: mem2.content,
+                  similarity,
+                });
+              }
               processedIds.add(mem2.id);
             }
           }
@@ -123,6 +144,7 @@ export class DeduplicationService {
 
       return {
         exactDuplicatesDeleted: exactDeleted,
+        nearDuplicatesDeleted: nearDeleted,
         nearDuplicateGroups,
       };
     } finally {
