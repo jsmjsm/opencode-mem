@@ -1,12 +1,17 @@
-# OpenCode Memory
+# OpenCode Memory (jsmjsm fork)
 
-[![npm version](https://img.shields.io/npm/v/opencode-mem.svg)](https://www.npmjs.com/package/opencode-mem)
-[![npm downloads](https://img.shields.io/npm/dm/opencode-mem.svg)](https://www.npmjs.com/package/opencode-mem)
-[![license](https://img.shields.io/npm/l/opencode-mem.svg)](https://www.npmjs.com/package/opencode-mem)
+[![npm version](https://img.shields.io/npm/v/opencode-mem-jsmjsm.svg)](https://www.npmjs.com/package/opencode-mem-jsmjsm)
+[![npm downloads](https://img.shields.io/npm/dm/opencode-mem-jsmjsm.svg)](https://www.npmjs.com/package/opencode-mem-jsmjsm)
+[![license](https://img.shields.io/npm/l/opencode-mem-jsmjsm.svg)](https://www.npmjs.com/package/opencode-mem-jsmjsm)
 
 ![OpenCode Memory Banner](.github/banner.png)
 
 A persistent memory system for AI coding agents that enables long-term context retention across sessions using local vector database technology.
+
+> **Why this fork?**
+> Upstream `opencode-mem@2.13.0` on npm predates the embedding-engine migration from `@xenova/transformers` to `@huggingface/transformers` (upstream PR [#90](https://github.com/tickernelz/opencode-mem/pull/90), commit [`40508eb`](https://github.com/tickernelz/opencode-mem/commit/40508eb)). The unreleased upstream `main` carries the fix, but no `v2.13.1` tag has been cut, so npm's `latest` still installs the broken `sharp`-dependent code on Apple Silicon and other M-series Macs.
+>
+> This fork republishes the same merged-but-unreleased code as **`opencode-mem-jsmjsm@2.13.1`** so opencode users can install the working build today via the standard `<name>@latest` install path. When upstream cuts an official `2.13.1+` release on npm, switch back to `opencode-mem@latest` and stop using this fork.
 
 ## Visual Overview
 
@@ -42,11 +47,20 @@ Add to your OpenCode configuration at `~/.config/opencode/opencode.json`:
 
 ```jsonc
 {
-  "plugin": ["opencode-mem"],
+  "plugin": ["opencode-mem-jsmjsm@latest"],
 }
 ```
 
 The plugin downloads automatically on next startup.
+
+> **Do not** use `opencode-mem@git+https://github.com/jsmjsm/opencode-mem.git` — opencode has a shim-writer bug that produces a deps-only install (no plugin source) for git+https URLs of this package. Use the npm name `opencode-mem-jsmjsm@latest` above.
+
+If you previously installed via git+https, clean the stale cache once:
+
+```bash
+rm -rf ~/.cache/opencode/packages/opencode-mem*
+# then quit and restart opencode
+```
 
 ## Usage Examples
 
@@ -158,8 +172,12 @@ This project is actively seeking contributions to become the definitive memory p
 
 MIT License - see LICENSE file
 
-- **Repository**: https://github.com/tickernelz/opencode-mem
-- **Issues**: https://github.com/tickernelz/opencode-mem/issues
+- **This fork**: https://github.com/jsmjsm/opencode-mem
+- **npm package**: https://www.npmjs.com/package/opencode-mem-jsmjsm
+- **Upstream repository**: https://github.com/tickernelz/opencode-mem
+- **Upstream issues**: https://github.com/tickernelz/opencode-mem/issues (file there for general bugs)
+- **Fork-specific issues**: https://github.com/jsmjsm/opencode-mem/issues (publish/install problems specific to this republished version)
 - **OpenCode Platform**: https://opencode.ai
 
-Inspired by [opencode-supermemory](https://github.com/supermemoryai/opencode-supermemory)
+Inspired by [opencode-supermemory](https://github.com/supermemoryai/opencode-supermemory).
+All credit to [@tickernelz](https://github.com/tickernelz) and upstream contributors for the actual plugin code; this fork only republishes their merged-but-unreleased fixes to npm.
