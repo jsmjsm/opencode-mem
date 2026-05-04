@@ -1,5 +1,5 @@
 {
-  "name": "@jsmjsm/opencode-mem",
+  "name": "opencode-mem-jsmjsm",
   "version": "2.13.1",
   "description": "OpenCode plugin that gives coding agents persistent memory using local vector database",
   "type": "module",
