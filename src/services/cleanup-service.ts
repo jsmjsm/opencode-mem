@@ -57,8 +57,6 @@ export class CleanupService {
       const promptCleanupResult = userPromptManager.deleteOldPrompts(cutoffTime);
       const linkedMemoryIds = new Set(promptCleanupResult.linkedMemoryIds);
 
-      const protectedMemoryIds = new Set([...pinnedMemoryIds, ...linkedMemoryIds]);
-
       let totalDeleted = 0;
       let userDeleted = 0;
       let projectDeleted = 0;
@@ -72,25 +70,25 @@ export class CleanupService {
           .prepare(
             `
           SELECT id, container_tag, is_pinned FROM memories 
-          WHERE updated_at < ?
+          WHERE created_at < ?
         `
           )
           .all(cutoffTime) as any[];
 
         for (const memory of oldMemories) {
           try {
-            if (memory.is_pinned === 1) {
+            if (memory.is_pinned === 1 || pinnedMemoryIds.has(memory.id)) {
               pinnedSkipped++;
-              continue;
-            }
-
-            if (protectedMemoryIds.has(memory.id)) {
               continue;
             }
 
             await vectorSearch.deleteVector(db, memory.id, shard);
             shardManager.decrementVectorCount(shard.id);
             totalDeleted++;
+
+            if (linkedMemoryIds.has(memory.id)) {
+              linkedMemoriesDeleted++;
+            }
 
             if (memory.container_tag?.includes("_user_")) {
               userDeleted++;
@@ -103,7 +101,7 @@ export class CleanupService {
         }
       }
 
-      const promptsDeleted = promptCleanupResult.deleted - linkedMemoryIds.size;
+      const promptsDeleted = promptCleanupResult.deleted;
 
       return {
         deletedCount: totalDeleted,
