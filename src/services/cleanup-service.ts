@@ -11,6 +11,7 @@ interface CleanupResult {
   projectCount: number;
   promptsDeleted: number;
   linkedMemoriesDeleted: number;
+  linkedMemoriesSkipped: number;
   pinnedMemoriesSkipped: number;
 }
 
@@ -42,6 +43,8 @@ export class CleanupService {
 
     try {
       const cutoffTime = Date.now() - CONFIG.autoCleanupRetentionDays * 24 * 60 * 60 * 1000;
+      const minCreatedAt = CONFIG.cleanupCreatedAtMinTimestampMs;
+      const linkedPolicy = CONFIG.cleanupLinkedMemoryPolicy;
 
       const userShards = shardManager.getAllShards("user", "");
       const projectShards = shardManager.getAllShards("project", "");
@@ -57,12 +60,11 @@ export class CleanupService {
       const promptCleanupResult = userPromptManager.deleteOldPrompts(cutoffTime);
       const linkedMemoryIds = new Set(promptCleanupResult.linkedMemoryIds);
 
-      const protectedMemoryIds = new Set([...pinnedMemoryIds, ...linkedMemoryIds]);
-
       let totalDeleted = 0;
       let userDeleted = 0;
       let projectDeleted = 0;
       let linkedMemoriesDeleted = 0;
+      let linkedMemoriesSkipped = 0;
       let pinnedSkipped = 0;
 
       for (const shard of allShards) {
@@ -72,25 +74,30 @@ export class CleanupService {
           .prepare(
             `
           SELECT id, container_tag, is_pinned FROM memories 
-          WHERE updated_at < ?
+          WHERE created_at < ? AND created_at > ?
         `
           )
-          .all(cutoffTime) as any[];
+          .all(cutoffTime, minCreatedAt) as any[];
 
         for (const memory of oldMemories) {
           try {
-            if (memory.is_pinned === 1) {
+            if (memory.is_pinned === 1 || pinnedMemoryIds.has(memory.id)) {
               pinnedSkipped++;
               continue;
             }
 
-            if (protectedMemoryIds.has(memory.id)) {
+            if (linkedPolicy === "protect" && linkedMemoryIds.has(memory.id)) {
+              linkedMemoriesSkipped++;
               continue;
             }
 
             await vectorSearch.deleteVector(db, memory.id, shard);
             shardManager.decrementVectorCount(shard.id);
             totalDeleted++;
+
+            if (linkedMemoryIds.has(memory.id)) {
+              linkedMemoriesDeleted++;
+            }
 
             if (memory.container_tag?.includes("_user_")) {
               userDeleted++;
@@ -103,7 +110,7 @@ export class CleanupService {
         }
       }
 
-      const promptsDeleted = promptCleanupResult.deleted - linkedMemoryIds.size;
+      const promptsDeleted = promptCleanupResult.deleted;
 
       return {
         deletedCount: totalDeleted,
@@ -111,6 +118,7 @@ export class CleanupService {
         projectCount: projectDeleted,
         promptsDeleted,
         linkedMemoriesDeleted,
+        linkedMemoriesSkipped,
         pinnedMemoriesSkipped: pinnedSkipped,
       };
     } finally {

@@ -113,6 +113,10 @@ export declare function handleRunCleanup(): Promise<ApiResponse<{
     deletedCount: number;
     userCount: number;
     projectCount: number;
+    promptsDeleted: number;
+    linkedMemoriesDeleted: number;
+    linkedMemoriesSkipped: number;
+    pinnedMemoriesSkipped: number;
 }>>;
 export declare function handleRunDeduplication(): Promise<ApiResponse<{
     exactDuplicatesDeleted: number;

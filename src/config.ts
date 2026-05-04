@@ -55,6 +55,8 @@ interface OpenCodeMemConfig {
   maxVectorsPerShard?: number;
   autoCleanupEnabled?: boolean;
   autoCleanupRetentionDays?: number;
+  cleanupLinkedMemoryPolicy?: "protect" | "delete-with-expired-prompt";
+  cleanupCreatedAtMinTimestampMs?: number;
   deduplicationEnabled?: boolean;
   deduplicationSimilarityThreshold?: number;
   deduplicationDeleteThreshold?: number;
@@ -135,6 +137,8 @@ const DEFAULTS: Required<
   maxVectorsPerShard: 50000,
   autoCleanupEnabled: true,
   autoCleanupRetentionDays: 30,
+  cleanupLinkedMemoryPolicy: "protect" as const,
+  cleanupCreatedAtMinTimestampMs: 946684800000,
   deduplicationEnabled: true,
   deduplicationSimilarityThreshold: 0.9,
   deduplicationDeleteThreshold: 0.95,
@@ -243,7 +247,23 @@ const CONFIG_TEMPLATE = `{
   
   // Days to keep memories before auto-cleanup (only if autoCleanupEnabled is true)
   "autoCleanupRetentionDays": 30,
-  
+
+  // What to do with memories whose source user prompt was JUST DELETED in this same cleanup run.
+  //   "protect"                     -> keep these memories (default; matches pre-2.13.4 behavior).
+  //   "delete-with-expired-prompt"  -> delete these memories alongside their expired prompts. More
+  //                                    aggressive: cleanup will actually reduce the memory count for
+  //                                    users whose memories are mostly auto-captured. Trade-off:
+  //                                    if memory deletion partially fails after the prompts are
+  //                                    already deleted, the failed-to-delete memories survive
+  //                                    with a broken prompt link.
+  "cleanupLinkedMemoryPolicy": "protect",
+
+  // Sanity floor for created_at filtering during cleanup. Memories with created_at below this
+  // millisecond timestamp are NOT deleted even when older than the retention window. Guards
+  // against migrations / imports that backdate created_at to 0 / epoch / corrupt values.
+  // Default 946684800000 = 2000-01-01T00:00:00Z.
+  "cleanupCreatedAtMinTimestampMs": 946684800000,
+
   // Automatically detect and remove duplicate memories
   "deduplicationEnabled": true,
   
@@ -566,6 +586,10 @@ function buildConfig(fileConfig: OpenCodeMemConfig) {
     autoCleanupEnabled: fileConfig.autoCleanupEnabled ?? DEFAULTS.autoCleanupEnabled,
     autoCleanupRetentionDays:
       fileConfig.autoCleanupRetentionDays ?? DEFAULTS.autoCleanupRetentionDays,
+    cleanupLinkedMemoryPolicy: (fileConfig.cleanupLinkedMemoryPolicy ??
+      DEFAULTS.cleanupLinkedMemoryPolicy) as "protect" | "delete-with-expired-prompt",
+    cleanupCreatedAtMinTimestampMs:
+      fileConfig.cleanupCreatedAtMinTimestampMs ?? DEFAULTS.cleanupCreatedAtMinTimestampMs,
     deduplicationEnabled: fileConfig.deduplicationEnabled ?? DEFAULTS.deduplicationEnabled,
     deduplicationSimilarityThreshold:
       fileConfig.deduplicationSimilarityThreshold ?? DEFAULTS.deduplicationSimilarityThreshold,
